@@ -27,3 +27,51 @@ In this competition, Kaggle provides us with both spectrograms and raw eeg wavef
 15. sklearn - Tools for evaluation, metrics and data splitting
 16. StratifiedGroupFold - Ensures that each fold of cross-validation contains the same class distribution(Stratified)
     
+
+## How the Code Works
+
+### 1. **Spectrogram Conversion**
+- EEG data is stored as `.parquet` files.
+- The file is loaded, transposed to `[frequency, time]`, normalized, log-scaled, and saved as `.npy`.
+- This prepares the data in a format compatible with CNN models like EfficientNet.
+
+### 2. **Data Augmentation**
+- Custom augmentations like `MixUp` and `RandomCutout` are applied using `KerasCV`.
+- This helps improve generalization and reduce overfitting.
+
+### 3. **Dataset Handling**
+- Each EEG spectrogram is decoded, cropped (optionally using offset), padded if needed, and expanded to 3 channels (`[400, 300, 3]`).
+- Spectrograms are grouped using `StratifiedGroupKFold` to avoid patient overlap in train/validation sets.
+
+### 4. **Model**
+- EfficientNetB0 is used for classification.
+- Inputs are `[400, 300, 3]` spectrograms and outputs are 6 softmax class probabilities.
+
+### 5. **Training**
+- Data is loaded in batches using a PyTorch `DataLoader`.
+- Cross-entropy loss is used, and training is performed fold-wise using stratified group validation.
+
+
+
+## Dataset
+
+- EEG spectrograms are provided in `.parquet` format.
+- Each row represents one time step; each column (after the first) represents a frequency bin.
+- Each spectrogram is converted to `.npy` for fast loading during training.
+
+
+
+## Cross-Validation Strategy
+
+- 5-fold **StratifiedGroupKFold**:
+  - **Stratified by class labels** to balance classes across folds.
+  - **Grouped by patient ID** to prevent data leakage between train and validation.
+
+
+
+## Output
+
+- The model outputs 6 class probabilities corresponding to different brain activity types.
+- The final metric is log loss.
+
+
